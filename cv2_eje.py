@@ -48,9 +48,9 @@ def detect_and_track_movement(frame, fgbg, kernel):
     return frame
 
 def apply_all_effects_to_camera():
-    """
-    Captura la cámara en tiempo real y aplica los efectos: desenfoque, ajuste de azul, efecto UV y detección de movimiento.
-    """
+
+#   Captura la cámara en tiempo real y aplica los efectos: desenfoque, ajuste de azul, efecto UV y detección de movimiento.
+ 
     try:
         cap = cv2.VideoCapture(0)
         if not cap.isOpened():
