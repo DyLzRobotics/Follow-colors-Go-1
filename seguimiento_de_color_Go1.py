@@ -3,7 +3,7 @@ import numpy as np
 
 # Variables de rango para detectar el color verde en formato HSV
 GREEN_LOW = np.array([40, 100, 100], np.uint8)
-GREEN_HIGH = np.array([80, 255, 255], np.uint8)
+GREEN_HIGH = np.array([100, 255, 255], np.uint8)
 
 # Inicialización de la cámara (usa 0 para la cámara principal)
 cam = cv2.VideoCapture(0)
@@ -30,15 +30,16 @@ while True:
         contours, _ = cv2.findContours(maskGreen, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         for contour in contours:
+            area = cv2.contourArea(contour)
             # Ignora contornos muy pequeños
             if cv2.contourArea(contour) < 500:
+                M = cv2.moments(contour)
+                if (M["m00"] == 0): M["m00"] = 1
+                x = int(M["m10"]/M["m00"])
+                y = int(M["m01"]/M["m00"])
+                # Dibuja el rectángulo sobre el frame original
+                cv2.circle(frame, (x, y), 7, (0, 255, 0), -1)
                 continue
-
-            # Calcula el rectángulo delimitador del contorno
-            x, y, w, h = cv2.boundingRect(contour)
-            # Dibuja el rectángulo sobre el frame original
-            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-
         # Muestra las imágenes
         cv2.imshow("Frame Original", frame)
         cv2.imshow("Máscara Verde", maskGreen)
