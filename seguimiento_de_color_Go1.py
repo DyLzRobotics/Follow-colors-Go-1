@@ -24,13 +24,26 @@ while True:
         frameHSV = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         # Crea una máscara para el color verde dentro del rango especificado
         maskGreen = cv2.inRange(frameHSV, GREEN_LOW, GREEN_HIGH)
-        #Mascara de color
-        maskGreenviw = cv2.bitwise_and(frame, frame, mask = maskGreen)
+        # Aplica la máscara para mostrar el color verde en la imagen original
+        maskGreenView = cv2.bitwise_and(frame, frame, mask=maskGreen)
+        # Encuentra los contornos en la máscara binaria
+        contours, _ = cv2.findContours(maskGreen, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-        # Muestra el frame original y la máscara del color verde
+        for contour in contours:
+            # Ignora contornos muy pequeños
+            if cv2.contourArea(contour) < 500:
+                continue
+
+            # Calcula el rectángulo delimitador del contorno
+            x, y, w, h = cv2.boundingRect(contour)
+            # Dibuja el rectángulo sobre el frame original
+            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
+        # Muestra las imágenes
         cv2.imshow("Frame Original", frame)
         cv2.imshow("Máscara Verde", maskGreen)
-        cv2.imshow("Mostrar color verd", maskGreenviw)
+        cv2.imshow("Color Detectado", maskGreenView)
+
         # Finaliza si se presiona la tecla 'q'
         if cv2.waitKey(1) & 0xFF == ord("q"):
             break
