@@ -55,6 +55,15 @@ while True:
             cv2.circle(frame, (x, y), 7, (0, 255, 0), -1)
             cv2.putText(frame, f"({x}, {y})", (x + 10, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
 
+            X = 280
+            Y = 465
+            if X >= x:
+                print("Rotar derecha")
+            elif X <= x:
+                print("Rotar izquierda")
+            if Y != y and X == x:
+                print("Adelante")
+
         # Dibuja el rectángulo delimitador alrededor del contorno
         x, y, w, h = cv2.boundingRect(contour)
         cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
