@@ -1,10 +1,10 @@
 import cv2
 import numpy as np
-from go1libpy import Robot  # Asegúrate de que el SDK de Unitree Go1 esté correctamente instalado y accesible.
+from go1pylib import Go1, Go1Mode  # Asegúrate de que el SDK de Unitree Go1 esté correctamente instalado y accesible.
 
 def connect_to_robot():
     # Conectar al robot Unitree Go1
-    robot = Robot()
+    robot = Go1()
     robot.initialize()  # Inicializar la conexión con el robot
     return robot
 
@@ -84,5 +84,5 @@ def main():
     cap.release()
     cv2.destroyAllWindows()
 
-if _name_ == "_main_":
-    main()
+
+main()
