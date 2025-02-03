@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from unitree_sdk import Robot  # Asegúrate de que el SDK de Unitree está correctamente instalado y accesible.
+from go1libpy import Robot  # Asegúrate de que el SDK de Unitree Go1 esté correctamente instalado y accesible.
 
 def connect_to_robot():
     # Conectar al robot Unitree Go1
@@ -46,10 +46,8 @@ def follow_color(frame):
     return None, None  
 
 def control_robot(robot, x, y):
-    
     robot_speed = 0.1 
     
-   
     if x is not None:
         if x < 271:
             print("Rotar a la derecha")
@@ -64,10 +62,8 @@ def control_robot(robot, x, y):
         print("Esperando rastros de color verde...")
 
 def main():
-    
     robot = connect_to_robot()
 
-   
     cap = cv2.VideoCapture(0)
     while True:
         ret, frame = cap.read()
@@ -75,14 +71,11 @@ def main():
             print("Error al capturar el fotograma.")
             break
 
-      
         adjusted_frame = adjust_blue_tone(frame)
         x, y = follow_color(adjusted_frame)
 
-       
         control_robot(robot, x, y)
 
-       
         cv2.imshow('Imagen procesada', adjusted_frame)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
