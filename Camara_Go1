@@ -1,86 +1,78 @@
-import cv2
 import numpy as np
-import threading
+import cv2
+import threading as thr
 
-class VideoProcessor:
-    def __init__(self):
-        self.cap = cv2.VideoCapture(0)
-        self.frame = None
-        self.processed_frame = None
-        self.lock = threading.Lock()
-        self.running = True
-        self.processing_thread = threading.Thread(target=self.process_loop)
-        self.processing_thread.start()
+def ajuste_color(frame, blue_decrease=23, blue_boost=30):
+    b, g, r = cv2.split(frame)
+    b = cv2.subtract(b, np.full(b.shape, blue_decrease, dtype=np.uint8))
+    b = cv2.add(b, np.full(b.shape, blue_boost, dtype=np.uint8))
+    return cv2.merge((b, g, r))
 
-    def blur_frame(self, frame, kernel_size=(63, 33)):
-        return cv2.GaussianBlur(frame, kernel_size, 0)
+def add_uv_effect(frame, purple_boost=55, brightness_increase=37):
+    hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    h, s, v = cv2.split(hsv_frame)
+    s = cv2.add(s, np.full(s.shape, purple_boost, dtype=np.uint8))
+    v = cv2.add(v, np.full(v.shape, brightness_increase, dtype=np.uint8))
+    modified_hsv = cv2.merge((h, s, v))
+    return cv2.cvtColor(modified_hsv, cv2.COLOR_HSV2BGR)
 
-    def adjust_blue_tone(self, frame, blue_decrease=23, blue_boost=30):
-        b, g, r = cv2.split(frame)
-        b = cv2.subtract(b, np.full(b.shape, blue_decrease, dtype=np.uint8))
-        b = cv2.add(b, np.full(b.shape, blue_boost, dtype=np.uint8))
-        return cv2.merge((b, g, r))
+def follow_color(frame):
+    GREEN_LOW = np.array([40, 100, 100], np.uint8)
+    GREEN_HIGH = np.array([100, 255, 255], np.uint8)
 
-    def add_uv_effect(self, frame, purple_boost=55, brightness_increase=37):
-        hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        h, s, v = cv2.split(hsv_frame)
-        s = cv2.add(s, np.full(s.shape, purple_boost, dtype=np.uint8))
-        v = cv2.add(v, np.full(v.shape, brightness_increase, dtype=np.uint8))
-        modified_hsv = cv2.merge((h, s, v))
-        return cv2.cvtColor(modified_hsv, cv2.COLOR_HSV2BGR)
+    # Convierte el frame a espacio de color HSV
+    frame_hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-    def follow_color(self, frame):
-        GREEN_LOW = np.array([40, 100, 100], np.uint8)
-        GREEN_HIGH = np.array([100, 255, 255], np.uint8)
-        frame_hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        mask_green = cv2.inRange(frame_hsv, GREEN_LOW, GREEN_HIGH)
-        contours, _ = cv2.findContours(mask_green, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    # Crea una máscara para el color verde dentro del rango especificado
+    mask_green = cv2.inRange(frame_hsv, GREEN_LOW, GREEN_HIGH)
 
-        for contour in contours:
-            area = cv2.contourArea(contour)
-            if area < 500:
-                continue
+    # Aplica la máscara para aislar el color verde en el frame original
+    contours, _ = cv2.findContours(mask_green, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-            M = cv2.moments(contour)
-            if M["m00"] != 0:
-                x_center = int(M["m10"] / M["m00"])
-                y_center = int(M["m01"] / M["m00"])
-                cv2.circle(frame, (x_center, y_center), 7, (0, 255, 0), -1)
-                cv2.putText(frame, f"({x_center}, {y_center})", (x_center + 10, y_center - 10),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+    x_center, y_center = None, None
 
-        return frame
+    for contour in contours:
+        area = cv2.contourArea(contour)
+        if area < 500:
+            continue
+        M = cv2.moments(contour)
+        if M["m00"] != 0:
+            x_center = int(M["m10"] / M["m00"])
+            y_center = int(M["m01"] / M["m00"])
+            cv2.circle(frame, (x_center, y_center), 7, (0, 255, 0), -1)
+            cv2.putText(frame, f"({x_center}, {y_center})", (x_center + 10, y_center - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+    print(f"Coordenadas detectadas: x={x_center}, y={y_center}")
+    return x_center, y_center
 
-    def process_loop(self):
-        while self.running:
-            if self.frame is not None:
-                with self.lock:
-                    processed = self.blur_frame(self.frame)
-                    processed = self.adjust_blue_tone(processed)
-                    processed = self.add_uv_effect(processed)
-                    processed = self.follow_color(processed)
-                    self.processed_frame = processed
 
-    def run(self):
-        while self.cap.isOpened():
-            ret, frame = self.cap.read()
+def process_video():
+    cap = cv2.VideoCapture(0)
+
+    if not cap.isOpened():
+        print("Error: No se pudo abrir la cámara.")
+        return
+
+    def process_frame():
+        while True:
+            ret, frame = cap.read()
             if not ret:
                 break
 
-            with self.lock:
-                self.frame = frame.copy()
+            frame = ajuste_color(frame)
+            frame = add_uv_effect(frame)
+            x, y = follow_color(frame)
 
-            if self.processed_frame is not None:
-                cv2.imshow('Camera with Effects', self.processed_frame)
-
+            cv2.imshow("Video Procesado", frame)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
 
-        self.running = False
-        self.processing_thread.join()
-        self.cap.release()
-        cv2.destroyAllWindows()
+    processing_thread = thr.Thread(target=process_frame, daemon=True)
+    processing_thread.start()
+    processing_thread.join()
 
-if __name__ == "__main__":
-    processor = VideoProcessor()
-    processor.run()
+    cap.release()
+    cv2.destroyAllWindows()
+
+#Mostrar camara con efectos
+process_video()
