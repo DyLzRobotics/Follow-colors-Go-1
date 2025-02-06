@@ -78,7 +78,8 @@ def process_video():
     processing_thread = thr.Thread(target=process_frame, daemon=True)
     processing_thread.start()
 
-    # Este hilo no se bloquea (no usamos join())
+    # No bloquear la cámara, dejamos que el hilo de procesamiento funcione en segundo plano
+    processing_thread.join()  # El hilo de la cámara seguirá corriendo mientras main() se ejecuta
     cap.release()
     cv2.destroyAllWindows()
 
@@ -146,8 +147,13 @@ def main():
                     break
         time.sleep(0.5)
 
-# Ejecutar en segundo plano el procesamiento de video
-process_video()
+# Ejecutar el procesamiento de video y el control del robot de manera concurrente
+def run():
+    # Crear hilo para procesar video
+    video_thread = thr.Thread(target=process_video, daemon=True)
+    video_thread.start()
 
-# Ejecutar el control del robot
-main()
+    # Ejecutar el control del robot en el hilo principal
+    main()
+
+run()
